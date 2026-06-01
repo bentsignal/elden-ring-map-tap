@@ -28,13 +28,6 @@
     "y": 0.3424
   },
   {
-    "id": 164167,
-    "name": "Black Knife Catacombs",
-    "region": "Altus Plateau",
-    "x": 0.29541,
-    "y": 0.44704
-  },
-  {
     "id": 166993,
     "name": "Bower of Bounty",
     "region": "Altus Plateau",
@@ -47,13 +40,6 @@
     "region": "Altus Plateau",
     "x": 0.29846,
     "y": 0.28557
-  },
-  {
-    "id": 165518,
-    "name": "Church of Inhibition",
-    "region": "Altus Plateau",
-    "x": 0.2583,
-    "y": 0.43505
   },
   {
     "id": 167409,
@@ -84,13 +70,6 @@
     "y": 0.33312
   },
   {
-    "id": 166525,
-    "name": "Frenzied Flame Village Outskirts",
-    "region": "Altus Plateau",
-    "x": 0.28174,
-    "y": 0.45103
-  },
-  {
     "id": 165888,
     "name": "Grand Lift of Dectus",
     "region": "Altus Plateau",
@@ -103,13 +82,6 @@
     "region": "Altus Plateau",
     "x": 0.40796,
     "y": 0.31869
-  },
-  {
-    "id": 166767,
-    "name": "Magma Wyrm Makar",
-    "region": "Altus Plateau",
-    "x": 0.24207,
-    "y": 0.39098
   },
   {
     "id": 166533,
@@ -1120,6 +1092,13 @@
     "y": 0.44034
   },
   {
+    "id": 164167,
+    "name": "Black Knife Catacombs",
+    "region": "Liurnia of the Lakes",
+    "x": 0.29541,
+    "y": 0.44704
+  },
+  {
     "id": 166186,
     "name": "Boilprawn Shack",
     "region": "Liurnia of the Lakes",
@@ -1132,6 +1111,13 @@
     "region": "Liurnia of the Lakes",
     "x": 0.19604,
     "y": 0.62848
+  },
+  {
+    "id": 165518,
+    "name": "Church of Inhibition",
+    "region": "Liurnia of the Lakes",
+    "x": 0.2583,
+    "y": 0.43505
   },
   {
     "id": 164425,
@@ -1232,6 +1218,13 @@
     "y": 0.52075
   },
   {
+    "id": 166525,
+    "name": "Frenzied Flame Village Outskirts",
+    "region": "Liurnia of the Lakes",
+    "x": 0.28174,
+    "y": 0.45103
+  },
+  {
     "id": 164153,
     "name": "Gate Town Bridge",
     "region": "Liurnia of the Lakes",
@@ -1300,6 +1293,13 @@
     "region": "Liurnia of the Lakes",
     "x": 0.28076,
     "y": 0.66843
+  },
+  {
+    "id": 166767,
+    "name": "Magma Wyrm Makar",
+    "region": "Liurnia of the Lakes",
+    "x": 0.24207,
+    "y": 0.39098
   },
   {
     "id": 164422,
@@ -1417,8 +1417,8 @@
     "id": 167002,
     "name": "Ruin-Strewn Precipice",
     "region": "Liurnia of the Lakes",
-    "x": 0.26575,
-    "y": 0.39149
+    "x": 0.26408,
+    "y": 0.39247
   },
   {
     "id": 166769,
