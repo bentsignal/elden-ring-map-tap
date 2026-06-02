@@ -1,3 +1,5 @@
+"use client";
+
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -6,17 +8,64 @@ import { SoulsVerdict } from "../components/SoulsVerdict";
 import { dateLabel, resetCountdownLabel, selectDaily, todayKey } from "../game/daily";
 import { scoreRound, totalScore } from "../game/scoring";
 import { buildShareText, emojiFor, tierFor } from "../game/share";
+import { loadPersistedGame, savePersistedGame } from "../game/storage";
 import { MAX_SCORE, ROUNDS, ROUND_COUNT } from "../game/config";
 import type { Grace, Point, RoundResult } from "../game/types";
+import type { PersistedGame } from "../game/storage";
 
 export const Route = createFileRoute("/")({ component: Home });
 
 type Phase = "intro" | "playing" | "done";
-const STORAGE_PREFIX = "er-grace-guesser:";
 
-interface SavedGame {
+interface GameState {
   dateKey: string;
+  phase: Phase;
+  roundIndex: number;
   results: RoundResult[];
+  guess: Point | null;
+  revealed: boolean;
+}
+
+function introGame(dateKey: string): GameState {
+  return {
+    dateKey,
+    phase: "intro",
+    roundIndex: 0,
+    results: [],
+    guess: null,
+    revealed: false,
+  };
+}
+
+function gameFromPersisted(saved: PersistedGame | null, dateKey: string): GameState {
+  if (!saved) return introGame(dateKey);
+  return {
+    dateKey,
+    phase: saved.phase,
+    roundIndex: saved.roundIndex,
+    results: saved.results,
+    guess: saved.guess,
+    revealed: saved.revealed,
+  };
+}
+
+function persistableGame(game: GameState): PersistedGame | null {
+  if (game.phase === "intro") return null;
+  return {
+    version: 1,
+    dateKey: game.dateKey,
+    phase: game.results.length === ROUND_COUNT ? "done" : game.phase,
+    roundIndex: game.results.length === ROUND_COUNT ? ROUND_COUNT - 1 : game.roundIndex,
+    results: game.results,
+    guess: game.revealed ? game.results[game.roundIndex]?.guess ?? game.guess : game.guess,
+    revealed: game.results.length === ROUND_COUNT ? false : game.revealed,
+  };
+}
+
+function initialGame(): GameState | null {
+  if (typeof window === "undefined") return null;
+  const key = todayKey();
+  return gameFromPersisted(loadPersistedGame(key), key);
 }
 
 function AppTitle({ className = "" }: { className?: string }) {
@@ -28,61 +77,42 @@ function AppTitle({ className = "" }: { className?: string }) {
   );
 }
 
-function loadSaved(dateKey: string): SavedGame | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + dateKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SavedGame;
-    return parsed.dateKey === dateKey ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
 function Home() {
-  const [mounted, setMounted] = useState(false);
-  const [dateKey, setDateKey] = useState("");
-  const [phase, setPhase] = useState<Phase>("intro");
-  const [roundIndex, setRoundIndex] = useState(0);
-  const [results, setResults] = useState<RoundResult[]>([]);
-  const [guess, setGuess] = useState<Point | null>(null);
-  const [revealed, setRevealed] = useState(false);
+  const [game, setGame] = useState<GameState | null>(() => initialGame());
+
+  const dateKey = game?.dateKey ?? "";
+  const phase = game?.phase ?? "intro";
+  const roundIndex = game?.roundIndex ?? 0;
+  const results = game?.results ?? [];
+  const guess = game?.guess ?? null;
+  const revealed = game?.revealed ?? false;
 
   const daily: Grace[] = useMemo(
     () => (dateKey ? selectDaily(dateKey) : []),
     [dateKey]
   );
 
+  const commitGame = useCallback((nextGame: GameState) => {
+    const savedGame = persistableGame(nextGame);
+    if (savedGame) savePersistedGame(savedGame);
+    setGame(nextGame);
+  }, []);
+
   useEffect(() => {
     const syncDate = () => {
       const key = todayKey();
-      setDateKey((currentKey) => {
-        if (currentKey === key) return currentKey;
-
-        const saved = loadSaved(key);
-        if (saved && saved.results.length === ROUND_COUNT) {
-          setResults(saved.results);
-          setPhase("done");
-        } else {
-          setPhase("intro");
-          setRoundIndex(0);
-          setResults([]);
-          setGuess(null);
-          setRevealed(false);
-        }
-
-        return key;
+      setGame((currentGame) => {
+        if (currentGame?.dateKey === key) return currentGame;
+        return gameFromPersisted(loadPersistedGame(key), key);
       });
     };
 
-    const key = todayKey();
-    setDateKey(key);
-    const saved = loadSaved(key);
-    if (saved && saved.results.length === ROUND_COUNT) {
-      setResults(saved.results);
-      setPhase("done");
-    }
-    setMounted(true);
+    setGame((currentGame) => {
+      const key = todayKey();
+      return currentGame?.dateKey === key
+        ? currentGame
+        : gameFromPersisted(loadPersistedGame(key), key);
+    });
     const id = window.setInterval(syncDate, 30_000);
     return () => window.clearInterval(id);
   }, []);
@@ -91,46 +121,58 @@ function Home() {
   const roundCfg = ROUNDS[roundIndex];
   const runningTotal = totalScore(results);
 
-  const onPick = useCallback((p: Point) => setGuess(p), []);
+  const onPick = useCallback((p: Point) => {
+    if (!game || game.phase !== "playing" || game.revealed) return;
+    commitGame({ ...game, guess: p });
+  }, [commitGame, game]);
 
   const submit = useCallback(() => {
-    if (!guess || !current || revealed) return;
-    const r = scoreRound(guess, { x: current.x, y: current.y }, roundIndex);
-    setResults((prev) => [...prev, r]);
-    setRevealed(true);
-  }, [guess, current, revealed, roundIndex]);
+    if (!game?.guess || !current || game.revealed) return;
+    const r = scoreRound(game.guess, { x: current.x, y: current.y }, game.roundIndex);
+    const nextResults = [...game.results, r];
+    commitGame({
+      ...game,
+      phase: "playing",
+      roundIndex: game.roundIndex,
+      results: nextResults,
+      guess: game.guess,
+      revealed: true,
+    });
+  }, [commitGame, current, game]);
 
   const next = useCallback(() => {
-    if (roundIndex + 1 < ROUND_COUNT) {
-      setRoundIndex((i) => i + 1);
-      setGuess(null);
-      setRevealed(false);
+    if (!game) return;
+    if (game.roundIndex + 1 < ROUND_COUNT) {
+      commitGame({
+        ...game,
+        roundIndex: game.roundIndex + 1,
+        guess: null,
+        revealed: false,
+      });
       return;
     }
-    // finished
-    setResults((finalResults) => {
-      try {
-        localStorage.setItem(
-          STORAGE_PREFIX + dateKey,
-          JSON.stringify({ dateKey, results: finalResults } satisfies SavedGame)
-        );
-      } catch {
-        /* ignore quota / privacy mode */
-      }
-      return finalResults;
+    commitGame({
+      ...game,
+      phase: "done",
+      roundIndex: ROUND_COUNT - 1,
+      guess: null,
+      revealed: false,
     });
-    setPhase("done");
-  }, [roundIndex, dateKey]);
+  }, [commitGame, game]);
 
   const begin = useCallback(() => {
-    setPhase("playing");
-    setRoundIndex(0);
-    setResults([]);
-    setGuess(null);
-    setRevealed(false);
-  }, []);
+    if (!dateKey) return;
+    commitGame({
+      dateKey,
+      phase: "playing",
+      roundIndex: 0,
+      results: [],
+      guess: null,
+      revealed: false,
+    });
+  }, [commitGame, dateKey]);
 
-  if (!mounted) {
+  if (!game) {
     return (
       <div className="flex h-dvh items-center justify-center bg-[var(--er-bg)]">
         <p className="font-display er-title text-center text-2xl">
