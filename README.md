@@ -6,7 +6,7 @@ and score by how close you land. Share your result with friends.
 
 Inspired by [maptap.gg](https://maptap.gg).
 
-## How it works
+## How to play
 
 - **Five rounds, rising stakes.** Scores are quality 0–100 per round, multiplied
   `×1, ×1, ×2, ×3, ×3` → **1000 max**.
@@ -21,20 +21,7 @@ Inspired by [maptap.gg](https://maptap.gg).
   💍 www.grace-guesser.com
   ```
 
-## Stack
-
-TanStack Start + React 19, Tailwind v4, Leaflet (flat 2D map via `CRS.Simple`),
-Vitest.
-
-## Develop
-
-```bash
-pnpm dev      # https://www.grace-guesser.localhost
-pnpm test     # game-logic unit tests (vitest)
-pnpm build    # production build
-```
-
-## The grace data
+## Graces
 
 `src/data/graces.json` holds **267 above-ground graces** with `{ id, name, region,
 x, y }`, where `x`/`y` are normalized `0..1` over the full-resolution Lands
