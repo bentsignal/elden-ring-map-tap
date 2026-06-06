@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { GRACES, selectDaily, todayKey, dateLabel, nextDailyReset, resetCountdownLabel } from "./daily";
 import { baseScore, mapDistance, scoreRound, totalScore } from "./scoring";
 import { buildShareText, emojiFor } from "./share";
+import { loadPersistedGame, parsePersistedGame, savePersistedGame } from "./storage";
 import { MAX_SCORE, ROUND_COUNT, ROUNDS } from "./config";
+import type { RoundResult } from "./types";
 
 describe("data", () => {
   it("loads above-ground graces with normalized coords", () => {
@@ -112,6 +114,142 @@ describe("share", () => {
     expect(text).toContain("Elden Ring Grace Guesser · May 22");
     expect(text).toContain("Runes: 679/1000");
     expect(text).toContain("💍 https://www.grace-guesser.com");
+  });
+});
+
+describe("persisted game state", () => {
+  const result: RoundResult = {
+    guess: { x: 0.25, y: 0.75 },
+    distance: 0.1,
+    baseScore: 62,
+    roundScore: 124,
+  };
+
+  function memoryStorage(): Storage {
+    const store = new Map<string, string>();
+    return {
+      get length() {
+        return store.size;
+      },
+      clear: () => store.clear(),
+      getItem: (key) => store.get(key) ?? null,
+      key: (index) => Array.from(store.keys())[index] ?? null,
+      removeItem: (key) => store.delete(key),
+      setItem: (key, value) => store.set(key, value),
+    };
+  }
+
+  it("accepts an unrevealed in-progress round", () => {
+    const saved = parsePersistedGame(
+      {
+        version: 1,
+        dateKey: "2026-05-22",
+        phase: "playing",
+        roundIndex: 1,
+        results: [result],
+        guess: { x: 0.4, y: 0.5 },
+        revealed: false,
+      },
+      "2026-05-22",
+    );
+
+    expect(saved?.phase).toBe("playing");
+    expect(saved?.roundIndex).toBe(1);
+    expect(saved?.guess).toEqual({ x: 0.4, y: 0.5 });
+  });
+
+  it("restores a revealed round from the saved result guess", () => {
+    const saved = parsePersistedGame(
+      {
+        version: 1,
+        dateKey: "2026-05-22",
+        phase: "playing",
+        roundIndex: 0,
+        results: [result],
+        guess: null,
+        revealed: true,
+      },
+      "2026-05-22",
+    );
+
+    expect(saved?.revealed).toBe(true);
+    expect(saved?.guess).toEqual(result.guess);
+  });
+
+  it("accepts completed games only when all rounds are present", () => {
+    const results = Array.from({ length: ROUND_COUNT }, () => result);
+    const saved = parsePersistedGame(
+      {
+        version: 1,
+        dateKey: "2026-05-22",
+        phase: "done",
+        roundIndex: 2,
+        results,
+        guess: { x: 0.1, y: 0.2 },
+        revealed: true,
+      },
+      "2026-05-22",
+    );
+
+    expect(saved?.phase).toBe("done");
+    expect(saved?.roundIndex).toBe(ROUND_COUNT - 1);
+    expect(saved?.results).toHaveLength(ROUND_COUNT);
+  });
+
+  it("saves and reloads active state from browser storage", () => {
+    vi.stubGlobal("localStorage", memoryStorage());
+
+    try {
+      savePersistedGame({
+        version: 1,
+        dateKey: "2026-05-22",
+        phase: "playing",
+        roundIndex: 3,
+        results: [result, result, result],
+        guess: { x: 0.6, y: 0.7 },
+        revealed: false,
+      });
+
+      const saved = loadPersistedGame("2026-05-22");
+
+      expect(saved?.phase).toBe("playing");
+      expect(saved?.roundIndex).toBe(3);
+      expect(saved?.results).toHaveLength(3);
+      expect(saved?.guess).toEqual({ x: 0.6, y: 0.7 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects stale or structurally impossible saves", () => {
+    expect(
+      parsePersistedGame(
+        {
+          version: 1,
+          dateKey: "2026-05-21",
+          phase: "playing",
+          roundIndex: 0,
+          results: [],
+          guess: null,
+          revealed: false,
+        },
+        "2026-05-22",
+      ),
+    ).toBeNull();
+    expect(
+      parsePersistedGame(
+        {
+          version: 1,
+          dateKey: "2026-05-22",
+          phase: "playing",
+          roundIndex: 2,
+          results: [],
+          guess: null,
+          revealed: true,
+        },
+        "2026-05-22",
+      ),
+    ).toBeNull();
   });
 });
 
