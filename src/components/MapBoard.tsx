@@ -15,12 +15,14 @@ interface MapBoardProps {
   interactive: boolean;
   /** optional caption shown on the revealed grace */
   actualLabel?: string;
+  /** changes when the map should return to the full-map view */
+  resetViewKey?: string | number;
 }
 
 // normalized (x,y in 0..1) <-> Leaflet CRS.Simple latlng (lat=y-up, lng=x)
 const toLatLng = (p: Point): [number, number] => [(1 - p.y) * MAP_HEIGHT, p.x * MAP_WIDTH];
 
-export function MapBoard({ actual, guess, onPick, interactive, actualLabel }: MapBoardProps) {
+export function MapBoard({ actual, guess, onPick, interactive, actualLabel, resetViewKey }: MapBoardProps) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const LRef = useRef<typeof import("leaflet") | null>(null);
@@ -81,6 +83,18 @@ export function MapBoard({ actual, guess, onPick, interactive, actualLabel }: Ma
       setReady(false);
     };
   }, []);
+
+  useEffect(() => {
+    const L = LRef.current;
+    const map = mapRef.current;
+    if (!L || !map || !ready || resetViewKey === undefined) return;
+
+    const bounds: [[number, number], [number, number]] = [
+      [0, 0],
+      [MAP_HEIGHT, MAP_WIDTH],
+    ];
+    map.fitBounds(bounds, { animate: false });
+  }, [ready, resetViewKey]);
 
   // guess marker
   useEffect(() => {
