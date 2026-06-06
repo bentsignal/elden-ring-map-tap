@@ -101,6 +101,31 @@ body {
   color: var(--er-gold-bright);
 }
 
+.er-segment {
+  border: 1px solid var(--er-line);
+  background: rgba(0, 0, 0, 0.32);
+}
+.er-segment-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  font-family: "Cinzel", serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--er-muted);
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.er-segment-btn:hover {
+  color: var(--er-gold-bright);
+}
+.er-segment-btn-active {
+  color: var(--er-gold-bright);
+  background: rgba(201, 162, 39, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 39, 0.38);
+}
+
 /* region hint: the "where to look" cue — kept brighter than a plain chip
    so first-time players actually notice it */
 .er-region-hint {
@@ -153,6 +178,71 @@ body {
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
 }
 .er-tip.leaflet-tooltip-top::before { border-top-color: rgba(201, 162, 39, 0.5); }
+
+.er-review-guess,
+.er-review-actual {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #0a0907;
+  font-family: "Cinzel", serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.er-review-guess {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #f2c36a;
+  background: #1a1207;
+  color: var(--er-gold-bright);
+  box-shadow: 0 0 0 2px rgba(10, 9, 7, 0.72), 0 0 14px rgba(201, 162, 39, 0.7);
+}
+
+.er-review-actual {
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff4c7;
+  background: radial-gradient(circle, #fffbe8 0%, var(--er-gold-bright) 42%, #9d7716 100%);
+  box-shadow: 0 0 0 2px rgba(10, 9, 7, 0.68), 0 0 24px rgba(236, 208, 138, 0.9);
+}
+
+.er-review-tip.leaflet-tooltip {
+  background: rgba(14, 12, 9, 0.94);
+  border-radius: 4px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.58);
+  font-family: "Cinzel", serif;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  white-space: normal;
+}
+.er-review-tip-actual.leaflet-tooltip {
+  max-width: min(220px, 58vw);
+  border: 1px solid rgba(236, 208, 138, 0.72);
+  color: var(--er-gold-bright);
+}
+.er-review-tip-guess.leaflet-tooltip {
+  border: 1px solid rgba(242, 195, 106, 0.54);
+  color: #f2c36a;
+}
+.er-review-tip-actual.leaflet-tooltip-top::before { border-top-color: rgba(236, 208, 138, 0.72); }
+.er-review-tip-guess.leaflet-tooltip-bottom::before { border-bottom-color: rgba(242, 195, 106, 0.54); }
+
+.er-review-legend {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(201, 162, 39, 0.52);
+}
+.er-review-legend-guess {
+  border: 2px solid #f2c36a;
+  background: #1a1207;
+}
+.er-review-legend-actual {
+  border: 2px solid #fff4c7;
+  background: var(--er-gold-bright);
+}
 
 .er-editor-origin {
   width: 18px;

@@ -1,9 +1,10 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { MapPin } from "lucide-react";
+import { MapPin, MapPinned, Trophy } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MapBoard } from "../components/MapBoard";
+import { ResultsMap } from "../components/ResultsMap";
 import { SoulsVerdict } from "../components/SoulsVerdict";
 import { dateLabel, resetCountdownLabel, selectDaily, todayKey } from "../game/daily";
 import { scoreRound, totalScore } from "../game/scoring";
@@ -16,6 +17,7 @@ import type { PersistedGame } from "../game/storage";
 export const Route = createFileRoute("/")({ component: Home });
 
 type Phase = "intro" | "playing" | "done";
+type ResultsView = "score" | "map";
 
 interface GameState {
   dateKey: string;
@@ -195,6 +197,7 @@ function Home() {
             onPick={onPick}
             interactive={!revealed}
             actualLabel={revealed ? current.name : undefined}
+            resetViewKey={roundIndex}
           />
         ) : (
           <MapBoard
@@ -202,6 +205,7 @@ function Home() {
             guess={null}
             onPick={() => {}}
             interactive={false}
+            resetViewKey={phase}
           />
         )}
       </div>
@@ -422,6 +426,7 @@ function ResultsOverlay({
   const total = totalScore(results);
   const shareText = buildShareText(results, dateKey, total);
   const [copied, setCopied] = useState(false);
+  const [view, setView] = useState<ResultsView>("score");
   const [resetCountdown, setResetCountdown] = useState(() => resetCountdownLabel());
 
   useEffect(() => {
@@ -449,7 +454,7 @@ function ResultsOverlay({
 
   return (
     <div className="absolute inset-0 z-[1100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="er-panel flex max-h-[92dvh] w-full max-w-md flex-col rounded-xl">
+      <div className={`er-panel flex max-h-[92dvh] w-full flex-col rounded-xl ${view === "map" ? "max-w-5xl" : "max-w-md"}`}>
         {/* Scrollable content — collapses on short screens so the footer stays in view */}
         <div className="min-h-0 flex-1 overflow-y-auto p-6 pb-4">
           <h2 className="font-display er-title text-center text-2xl">
@@ -459,45 +464,36 @@ function ResultsOverlay({
             {dateLabel(dateKey)}
           </p>
 
-          <div className="my-4 text-center">
-            <p className="font-display text-5xl text-[var(--er-gold-bright)]">
-              {total}
-            </p>
-            <p className="text-sm text-[var(--er-muted)]">
-              of {MAX_SCORE} · {verdict}
-            </p>
+          <div className="er-segment mx-auto mt-4 grid w-full max-w-sm grid-cols-2 rounded-md p-1">
+            <button
+              className={`er-segment-btn rounded px-3 py-2 text-xs ${view === "score" ? "er-segment-btn-active" : ""}`}
+              onClick={() => setView("score")}
+              type="button"
+            >
+              <Trophy className="size-4" />
+              Score
+            </button>
+            <button
+              className={`er-segment-btn rounded px-3 py-2 text-xs ${view === "map" ? "er-segment-btn-active" : ""}`}
+              onClick={() => setView("map")}
+              type="button"
+            >
+              <MapPinned className="size-4" />
+              Map
+            </button>
           </div>
 
-          <ul className="space-y-2">
-            {results.map((r, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between rounded-md border border-[var(--er-line)] bg-black/30 px-3 py-2"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="text-xl">{emojiFor(r.baseScore)}</span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm text-[var(--er-ink)]">
-                      {daily[i]?.name}
-                    </span>
-                    <span className="block text-xs text-[var(--er-muted)]">
-                      {daily[i]?.region} · ×{ROUNDS[i].multiplier}
-                    </span>
-                  </span>
-                </span>
-                <span className="font-display shrink-0 pl-2 text-right text-[var(--er-gold-bright)]">
-                  {r.roundScore}
-                  <span className="block text-xs text-[var(--er-muted)]">
-                    {r.baseScore}/100
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <pre className="mt-4 whitespace-pre-wrap rounded-md border border-[var(--er-line)] bg-black/40 p-3 text-center text-sm text-[var(--er-ink)]">
-            {shareText}
-          </pre>
+          {view === "score" ? (
+            <ResultsScoreView
+              daily={daily}
+              results={results}
+              shareText={shareText}
+              total={total}
+              verdict={verdict}
+            />
+          ) : (
+            <ResultsMapView daily={daily} results={results} />
+          )}
         </div>
 
         {/* Pinned footer — Copy result is always visible regardless of screen height */}
@@ -512,6 +508,90 @@ function ResultsOverlay({
             New graces in {resetCountdown}.
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultsScoreView({
+  daily,
+  results,
+  shareText,
+  total,
+  verdict,
+}: {
+  daily: Grace[];
+  results: RoundResult[];
+  shareText: string;
+  total: number;
+  verdict: string;
+}) {
+  return (
+    <>
+      <div className="my-4 text-center">
+        <p className="font-display text-5xl text-[var(--er-gold-bright)]">
+          {total}
+        </p>
+        <p className="text-sm text-[var(--er-muted)]">
+          of {MAX_SCORE} · {verdict}
+        </p>
+      </div>
+
+      <ul className="space-y-2">
+        {results.map((r, i) => (
+          <li
+            key={i}
+            className="flex items-center justify-between rounded-md border border-[var(--er-line)] bg-black/30 px-3 py-2"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="text-xl">{emojiFor(r.baseScore)}</span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm text-[var(--er-ink)]">
+                  {daily[i]?.name}
+                </span>
+                <span className="block text-xs text-[var(--er-muted)]">
+                  {daily[i]?.region} · ×{ROUNDS[i].multiplier}
+                </span>
+              </span>
+            </span>
+            <span className="font-display shrink-0 pl-2 text-right text-[var(--er-gold-bright)]">
+              {r.roundScore}
+              <span className="block text-xs text-[var(--er-muted)]">
+                {r.baseScore}/100
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <pre className="mt-4 whitespace-pre-wrap rounded-md border border-[var(--er-line)] bg-black/40 p-3 text-center text-sm text-[var(--er-ink)]">
+        {shareText}
+      </pre>
+    </>
+  );
+}
+
+function ResultsMapView({
+  daily,
+  results,
+}: {
+  daily: Grace[];
+  results: RoundResult[];
+}) {
+  return (
+    <div className="mt-4 flex flex-col gap-3">
+      <div className="h-[54dvh] min-h-80 overflow-hidden rounded-md border border-[var(--er-line)] bg-black/40 sm:h-[62dvh]">
+        <ResultsMap daily={daily} results={results} />
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs text-[var(--er-muted)] sm:mx-auto sm:w-fit sm:grid-cols-[auto_auto] sm:gap-4">
+        <span className="flex items-center gap-2">
+          <span className="er-review-legend er-review-legend-guess" />
+          Your guess
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="er-review-legend er-review-legend-actual" />
+          Actual grace
+        </span>
       </div>
     </div>
   );
